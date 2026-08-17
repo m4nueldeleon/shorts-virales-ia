@@ -1,0 +1,28 @@
+# Entorno
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+
+# Assets descargados/generados por setup.sh (no se versionan)
+assets/fonts/*
+assets/emoji/*
+assets/sfx/*
+assets/music/*
+!assets/fonts/.gitkeep
+!assets/emoji/.gitkeep
+!assets/sfx/.gitkeep
+!assets/music/.gitkeep
+
+# Artefactos de render
+cap_frames/
+cap_test/
+ov_frames/
+verificacion_frames/
+*.mov
+*.mp4
+*.wav
+*.mp3
+transcripcion*.json
+captions.json
+mapa_tiempos.json

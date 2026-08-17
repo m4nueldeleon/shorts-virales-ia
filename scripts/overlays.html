@@ -1,0 +1,95 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+/* ============================================================
+   COLORES EDITABLES — cámbialos a tu marca
+   (los TEXTOS se editan en el bloque TEXTOS del <script>)
+   ============================================================ */
+:root{
+  --color-acento:#FFE000;      /* flecha y círculo señaladores */
+  --color-subscribe:#FF0033;   /* píldora SUSCRÍBETE */
+  --color-follow-1:#0E7A3A;    /* gradiente de la píldora SÍGUEME */
+  --color-follow-2:#16A34A;
+  --color-like:#FF2D55;        /* píldora DALE LIKE */
+  --color-texto:#FFFFFF;       /* texto de píldoras y countdown */
+  --color-stroke:#000000;      /* contorno del countdown */
+}
+/* Fuentes locales descargadas por setup.sh en assets/fonts/; si faltan, cae a system-ui */
+@font-face{font-family:'Anton';src:url('../assets/fonts/Anton-Regular.ttf');}
+@font-face{font-family:'Mont';src:url('../assets/fonts/Poppins-Black.ttf');}
+html,body{margin:0;padding:0;background:transparent;width:1080px;height:1920px;overflow:hidden;
+  font-family:'Mont',system-ui,sans-serif;}
+#stage{position:absolute;inset:0;}
+.center{position:absolute;left:0;right:0;display:flex;justify-content:center;align-items:center;}
+/* píldoras SUSCRÍBETE / SÍGUEME / DALE LIKE */
+.pill{display:flex;align-items:center;gap:18px;padding:26px 46px;border-radius:999px;font-weight:900;
+  font-size:54px;letter-spacing:1px;color:var(--color-texto);box-shadow:0 16px 40px rgba(0,0,0,.45);}
+.sub{background:var(--color-subscribe);}
+.fol{background:linear-gradient(90deg,var(--color-follow-1),var(--color-follow-2));}
+.lik{background:var(--color-like);}
+.dot{width:26px;height:26px;border-radius:50%;background:var(--color-texto);opacity:.9;}
+/* countdown 3-2-1 */
+.cd{font-family:'Anton',system-ui,sans-serif;font-size:520px;color:var(--color-texto);
+  -webkit-text-stroke:14px var(--color-stroke);line-height:1;}
+/* viñeta (estática) */
+#vig{position:absolute;inset:0;background:radial-gradient(ellipse 70% 62% at 50% 45%,transparent 55%,rgba(0,0,0,.55) 100%);}
+/* light leak */
+.leak{position:absolute;inset:-20%;mix-blend-mode:screen;
+  background:radial-gradient(circle at 30% 20%,rgba(255,170,80,.9),transparent 40%),
+             radial-gradient(circle at 75% 80%,rgba(255,90,120,.8),transparent 45%);}
+svg{position:absolute;left:0;top:0;}
+</style></head>
+<body><div id="stage"></div>
+<script>
+/* ============================================================
+   TEXTOS EDITABLES — cámbialos a tu marca / idioma
+   ============================================================ */
+const TEXTOS={
+  subscribe:'▶ SUSCRÍBETE',
+  follow:'SÍGUEME — PARTE 2',
+  like:'♥ DALE LIKE',
+};
+// Y de las píldoras: con su altura (~110px) el borde inferior queda ≤1420,
+// arriba de la safe zone inferior (y≥1440 en lienzo 1920). Ajustable.
+const PILL_Y=1310;
+// color de acento leído de las variables CSS de arriba (flecha/círculo SVG)
+const ACENTO=getComputedStyle(document.documentElement).getPropertyValue('--color-acento').trim()||'#FFE000';
+
+// API que usa render_overlays.py vía Playwright:
+//   setup(escena, duracion) una vez, luego render(t) por cada frame.
+const S=document.getElementById('stage');
+function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
+function popIn(t,d=0.4){if(t<d){const k=t/d;return {op:k,sc:0.8+0.2*(1-(1-k)*(1-k))};}return{op:1,sc:1};}
+let SCENE=null,DUR=2.5;
+function setup(scene,dur){SCENE=scene;DUR=dur;S.innerHTML=build(scene);}
+function build(scene){
+ if(scene==='subscribe')return `<div class="center" style="top:${PILL_Y}px"><div class="pill sub" id="el">${TEXTOS.subscribe}</div></div>`;
+ if(scene==='follow')return `<div class="center" style="top:${PILL_Y}px"><div class="pill fol" id="el"><span class="dot"></span> ${TEXTOS.follow}</div></div>`;
+ if(scene==='like')return `<div class="center" style="top:${PILL_Y}px"><div class="pill lik" id="el">${TEXTOS.like}</div></div>`;
+ if(scene==='countdown')return `<div class="center" style="top:0;bottom:0"><div class="cd" id="el">3</div></div>`;
+ if(scene==='vignette')return `<div id="vig"></div>`;
+ if(scene==='lightleak')return `<div id="el" class="leak"></div>`;
+ if(scene==='circle')return `<svg width="1080" height="1920"><ellipse id="el" cx="540" cy="700" rx="360" ry="220" fill="none" stroke="${ACENTO}" stroke-width="16" stroke-linecap="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1" transform="rotate(-6 540 700)"/></svg>`;
+ if(scene==='arrow')return `<svg width="1080" height="1920"><path id="el" d="M260,760 Q520,640 780,720" fill="none" stroke="${ACENTO}" stroke-width="20" stroke-linecap="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/><polygon id="head" points="770,690 815,720 760,752" fill="${ACENTO}" opacity="0"/></svg>`;
+ return '';
+}
+function render(t){
+ const el=document.getElementById('el');
+ if(SCENE==='vignette'){return;}
+ if(SCENE==='lightleak'){if(el)el.style.opacity=0.4+0.4*Math.sin(t*3);return;}
+ if(SCENE==='countdown'){
+   // 3-2-1 repartido en DUR: cada número dura DUR/3, con pop al entrar
+   const seg=DUR/3,n=clamp(3-Math.floor(t/seg),1,3),local=t-(3-n)*seg;
+   el.textContent=n;const p=popIn(local,0.18);el.style.opacity=clamp(p.op,0,1);
+   el.style.transform=`scale(${1.4-0.4*clamp(local/0.25,0,1)})`;return;}
+ if(SCENE==='circle'||SCENE==='arrow'){
+   // trazo dibujándose con stroke-dashoffset (pathLength=1)
+   const k=clamp(t/0.6,0,1);el.style.strokeDashoffset=1-k;
+   if(SCENE==='arrow'){const h=document.getElementById('head');h.style.opacity=k>0.85?1:0;}
+   if(t>0.7){el.style.opacity=0.85+0.15*Math.sin(t*8);} // leve pulso al terminar
+   return;}
+ // píldoras (subscribe/follow/like): pop-in, pulso suave y fade-out al final
+ const p=popIn(t,0.45);let op=p.op,sc=p.sc;
+ if(t>DUR-0.3){op*=clamp((DUR-t)/0.3,0,1);}
+ const pulse=1+0.04*Math.sin(t*6);
+ el.style.opacity=op;el.style.transform=`scale(${sc*pulse})`;
+}
+</script></body></html>

@@ -1,0 +1,55 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+  /* ============================================================
+     COLORES DEL SUBTÍTULO — cámbialos a tu marca
+     ============================================================ */
+  :root{
+    --color-activo:#FFD400;   /* palabra que se está diciendo (amarillo) */
+    --color-base:#FFFFFF;     /* resto de palabras */
+    --color-stroke:#0A0A0A;   /* contorno exterior (stroke) */
+  }
+  /* Fuentes locales descargadas por setup.sh en assets/fonts/; si faltan, cae a Anton → system-ui.
+     Montserrat.ttf es variable font: el descriptor 100-900 + font-weight:900 lo instancia en Black. */
+  @font-face{font-family:'CaptionFont';src:url('../assets/fonts/Montserrat.ttf');font-weight:100 900;}
+  @font-face{font-family:'CaptionAlt';src:url('../assets/fonts/Anton-Regular.ttf');font-weight:400;}
+  html,body{margin:0;padding:0;background:transparent;width:1080px;height:380px;overflow:hidden;}
+  #wrap{position:absolute;left:0;right:0;top:0;bottom:0;display:flex;align-items:center;justify-content:center;}
+  #cap{max-width:920px;text-align:center;line-height:1.05;
+    font-family:'CaptionFont','CaptionAlt',system-ui,sans-serif;font-weight:900;font-style:normal;
+    font-variation-settings:'wght' 900;
+    font-size:78px;letter-spacing:0.5px;text-transform:uppercase;}
+  /* paint-order:stroke fill = el contorno se pinta POR FUERA sin comerse la letra */
+  .w{display:inline-block;margin:0 9px;color:var(--color-base);
+    -webkit-text-stroke:9px var(--color-stroke);paint-order:stroke fill;
+    text-shadow:0 6px 14px rgba(0,0,0,.55);transition:none;}
+  .w.on{color:var(--color-activo);}
+</style></head>
+<body><div id="wrap"><div id="cap"></div></div>
+<script>
+// API que usa render_captions.py vía Playwright:
+//   setup(captions) una vez, luego render(t) por cada frame (t en segundos).
+let C=null;
+function setup(c){C=c;}
+function render(t){
+  const cap=document.getElementById('cap');
+  let ch=null;
+  for(const x of C){ if(t>=x.start && t<x.end){ch=x;break;} }
+  if(!ch){ cap.innerHTML=''; cap.style.opacity=0; return; }
+  // pop-in al entrar / fade al salir del bloque
+  const tin=t-ch.start, tout=ch.end-t;
+  let op=1,sc=1;
+  if(tin<0.13){const k=tin/0.13;op=k;sc=0.86+0.14*k;}
+  if(tout<0.10){const k=Math.max(0,tout/0.10);op=k;}
+  cap.style.opacity=op;
+  cap.style.transform=`scale(${sc})`;
+  // construir palabras con "pop" (escala + color) de la palabra activa
+  let html='';
+  for(let i=0;i<ch.words.length;i++){
+    const w=ch.words[i];
+    const nextS=(i+1<ch.words.length)?ch.words[i+1].s:ch.end;
+    const active=(t>=w.s && t<nextS);
+    const sp=active?1.08:1.0;
+    html+=`<span class="w${active?' on':''}" style="transform:scale(${sp})">${w.w}</span>`;
+  }
+  cap.innerHTML=html;
+}
+</script></body></html>
