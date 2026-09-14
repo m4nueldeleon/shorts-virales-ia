@@ -174,6 +174,7 @@ RussoOne-Regular.ttf|$GF/ofl/russoone/RussoOne-Regular.ttf
 AlfaSlabOne-Regular.ttf|$GF/ofl/alfaslabone/AlfaSlabOne-Regular.ttf
 Montserrat.ttf|$GF/ofl/montserrat/Montserrat%5Bwght%5D.ttf
 Poppins-Black.ttf|$GF/ofl/poppins/Poppins-Black.ttf
+Poppins-Bold.ttf|$GF/ofl/poppins/Poppins-Bold.ttf
 "
 FUENTES_OK=0
 FUENTES_TOTAL=0

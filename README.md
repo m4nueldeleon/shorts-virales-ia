@@ -16,6 +16,9 @@ Shorts** — de forma automática:
 - 🖼️ **Imágenes generadas con IA** — b-roll que no existe, creado al vuelo con estilo consistente
 - 🎭 **Quita fondos** — chroma o IA, por segmentos de énfasis
 - 📱 **Optimizado para la plataforma** — 1080×1920, safe zones respetadas, export perfecto
+- 🧪 **Protocolo PRO + motor Remotion** — el sistema probado en un reel real de una cuenta de 500K:
+  tomas ocultas detectadas, timeline sin desfase, motion graphics anclados a palabras, logos reales
+  y revisión adversarial de veracidad antes de publicar ([`references/PROTOCOLO-PRO.md`](references/PROTOCOLO-PRO.md))
 
 Tú solo entregas el crudo. La skill se encarga del resto.
 
