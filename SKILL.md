@@ -41,7 +41,10 @@ del video (por defecto `es`). TODO lo demás (cortes, subtítulos, SFX, hook) se
 ⚠️ Dos trampas conocidas de whisper (te costarán un re-render si las ignoras):
 - **Estira palabras sobre pausas** → NUNCA cortes silencios usando timestamps de palabras.
 - **Oculta tomas repetidas** en el texto (el audio tartamudea pero el transcript se ve limpio) →
-  detecta repeticiones re-transcribiendo ventanas aisladas o el render final.
+  detecta repeticiones re-transcribiendo ventanas aisladas o el render final. Señal típica: UNA
+  palabra que dura 1–2.5 s. En ventanas aisladas no uses `initial_prompt` (induce alucinación).
+- **Cambia entre corridas** («todas las IAs» → «toda la CIA») → cachea la transcripción del corte
+  y, si solo cambia un tramo, reubica palabras con el mapa de tiempos en vez de re-transcribir.
 
 ### FASE 2 — Corrección de audio
 Sobre la pista de voz, en este orden:
@@ -59,6 +62,10 @@ La voz SIEMPRE al frente; música y SFX por debajo (Fase 7).
 2. **Silencios por ENERGÍA real** + plan de corte. Primero revisa el plan sin renderizar:
    `python scripts/cortar_silencios.py <video> --transcripcion transcripcion.json --muletillas --solo-plan`
    (usa `silencedetect` noise=-30dB d=0.4 y padding ~0.15 s en los bordes).
+   ⚠️ **Con ruido ambiente** (exteriores, eventos) `silencedetect` no encuentra pausas: corta por
+   envolvente de energía de la banda de voz y **protege las palabras cortas** (≤0.45 s) para no
+   comértelas → `scripts/motor_reel/build_base.py`. Cada pieza con **cuadros exactos** o el
+   timeline se desfasa y los efectos caen fuera de su palabra.
 3. **Tomas repetidas / errores**: pásalos como `--kill "12.3-14.1,55-57.2"` en tiempo ORIGINAL.
    El script los fusiona con silencios y muletillas. Cuando el plan esté bien, quita `--solo-plan`
    para renderizar → produce `base_cut.mp4` + `mapa_tiempos.json`.
@@ -145,6 +152,11 @@ El b-roll es la herramienta #1 de retención. Genera SOLO lo que no existe:
    - Re-transcribe el render final: ¿quedó alguna muletilla/repetición? ¿se cortó una palabra?
    - `silencedetect`: 0 silencios largos. `volumedetect`: sin clipping (max < 0 dB).
    - Revisa 3–4 frames: ¿subtítulos dentro de safe zones? ¿algún plano >4 s sin cambio?
+   - **Revisión adversarial** por un agente independiente (7 dimensiones, incluida **veracidad**:
+     ¿el hook contradice la historia? ¿algún gráfico afirma algo que el creador no dijo?) →
+     `references/PROTOCOLO-PRO.md`. Corrige en versión nueva y re-audita.
+   - Si renderizaste con Remotion: convierte `yuvj420p` → `yuv420p` y pon `alimiter` después de
+     `loudnorm` (solo loudnorm puede pasar de 0 dBFS).
 4. Export final: `-c:v libx264 -crf 18 -pix_fmt yuv420p -c:a aac -b:a 192k -movflags +faststart`.
 5. Entrega al usuario: el MP4 + 2 líneas con el hook usado y sugerencia de caption/hashtags.
 
@@ -162,12 +174,19 @@ reutilizables) usa **Remotion** (React): `npx create-video@latest`. Guía de cu�
 patrones: `references/REMOTION-ANIMACIONES.md`. Para dominio profundo instala la skill oficial:
 `https://github.com/remotion-dev/skills`.
 
+**Motor PRO listo para usar:** `scripts/motor_reel/` (EDL → base con cuadros exactos → subtítulos
+desde la re-transcripción → plantilla Remotion con cámara virtual, tarjetas, logos reales, reloj,
+confeti, CTA y SFX anclados a palabras → máster → auditoría). Protocolo completo en
+`references/PROTOCOLO-PRO.md`.
+
 ## Estructura de la skill
 ```
 scripts/    setup.sh · transcribir.py · cortar_silencios.py · generar_captions.py
             quitar_fondo.py · verificar.py · caption.html + render_captions.py
             overlays.html + render_overlays.py · transitions.py · gen_sfx.sh · descargar_sfx.py
+            motor_reel/ (build_base.py · words_from_base.py · remap_words.py · transcribe.py ·
+                         vad.py · audit.sh · preparar_public.sh · remotion-template/)
 references/ PLAYBOOK-VIRAL.md · ESTILOS-SUBTITULOS.md · TRANSICIONES-EFECTOS.md
-            IMAGENES-IA.md · REMOTION-ANIMACIONES.md · ASSETS.md
+            IMAGENES-IA.md · REMOTION-ANIMACIONES.md · ASSETS.md · PROTOCOLO-PRO.md
 assets/     fonts/ · emoji/ · sfx/ (se llenan con setup.sh) · music/ (la aporta el usuario)
 ```
