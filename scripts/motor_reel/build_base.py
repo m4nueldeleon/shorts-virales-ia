@@ -150,6 +150,16 @@ def all_words():
     return [w for s in TRANS["segments"] for w in s.get("words", [])]
 
 
+def correr_con_grafo(cmd):
+    """ffmpeg 7+ lee el grafo con «-/filter_complex <archivo>» y ffmpeg 9 quitó -filter_complex_script;
+    con ffmpeg 4-6 la sintaxis nueva no existe y se reintenta con la vieja (igual que cortar_silencios.py)."""
+    r = subprocess.run(cmd, capture_output=True, text=True)
+    if r.returncode != 0 and ("Unrecognized option" in r.stderr or "Error splitting" in r.stderr):
+        viejo = ["-filter_complex_script" if x == "-/filter_complex" else x for x in cmd]
+        r = subprocess.run(viejo, capture_output=True, text=True)
+    if r.returncode != 0:
+        sys.exit("ffmpeg falló al armar la base:\n" + "\n".join(r.stderr.strip().splitlines()[-12:]))
+
 def build():
     words = all_words()
     starts = sorted(w["start"] for w in words)
@@ -191,12 +201,12 @@ def build():
     graph = ";\n".join(filters)
     (OUT_DIR / "base_graph.txt").write_text(graph)
 
-    cmd = ["ffmpeg", "-v", "error", "-y", "-i", str(SRC), "-filter_complex_script", str(OUT_DIR / "base_graph.txt"),
+    cmd = ["ffmpeg", "-v", "error", "-y", "-i", str(SRC), "-/filter_complex", str(OUT_DIR / "base_graph.txt"),
            "-map", "[vc]", "-map", "[aout]", "-c:v", "libx264", "-crf", "15", "-preset", "medium",
            "-pix_fmt", "yuv420p", "-g", "30", "-c:a", "aac", "-b:a", "256k", "-ar", "48000",
            "-movflags", "+faststart", str(OUT_DIR / "base.mp4")]
     if "--solo-plan" not in sys.argv:
-        subprocess.run(cmd, check=True)
+        correr_con_grafo(cmd)
 
     # palabras en tiempo nuevo
     # Cada palabra va a la pieza con la que más se traslapa (whisper estira el inicio de la
